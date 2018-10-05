@@ -36,21 +36,6 @@ class PreviewPrint
     }
 
     /**
-     * @param $filename1
-     * @param $filename2
-     * @param $dir_out
-     * @param string $name
-     * @param string $type
-     * @param string $format
-     * @return array|null|string
-     */
-    static function previewDual( $filename1, $filename2,$dir_out,$name ='salida', $type = 'inner', $format = '4x6')
-    {
-        $obj = new self($type, $format);
-        return $obj->optimizeTwo( $filename1, $filename2,$dir_out,$name);
-    }
-
-    /**
      * @param $filename
      * @param $dir_out
      * @param string $name
@@ -65,11 +50,46 @@ class PreviewPrint
     }
 
     /**
+     * @param $filename1
+     * @param $filename2
+     * @param $dir_out
+     * @param string $name
+     * @param string $type
+     * @param string $format
+     * @return array|null|string
+     */
+    static function previewDual( $filename1, $filename2,$dir_out,$name ='salida', $type = 'inner', $format = '4x6')
+    {
+        $obj = new self($type, $format);
+        return $obj->optimizeTwo( $filename1, $filename2,$dir_out,$name);
+    }
+
+    static function previewDualList($images,$dir_out,$name ='salida', $type = 'inner', $format = '4x6'){
+        $count = count($images);
+
+        $uno = [];
+        $dos = [];
+        for ($a = 0; $a < $count; $a++) {
+            $uno[] = $images[$a];
+            $a++;
+            if (isset($images[$a])) {
+                $dos[] = $images[$a];
+            }else{
+                $dos[] = $images[($a-1)];
+            }
+
+        }
+        $obj = new self($type, $format);
+        return $obj->optimizeTwo( $uno,$dos,$dir_out,$name);
+    }
+
+
+    /**
      * @return resource
      */
     private function createCanvas(){
         $thumb = imagecreatetruecolor($this->size_x, $this->size_y);
-        $fondo = imagecolorallocate($thumb, 0, 0, 255);
+        $fondo = imagecolorallocate($thumb, 255, 255, 255);
         imagefilledrectangle($thumb, 0, 0, $this->size_x, $this->size_y, $fondo);
         return $thumb;
     }
@@ -204,7 +224,7 @@ class PreviewPrint
             $thumb = $this->createThumb($resource1);
             imagecopyresized($canvas, $thumb, $this->margin, $this->margin, 0, 0, $this->wrapper_x, $this->wrapper_y, $this->wrapper_x, $this->wrapper_y);
             $thumb = $this->createThumb($resource2);
-            imagecopyresized($canvas, $thumb, ($this->wrapper_x+($this->margin*2)), $this->margin, 0, 0, $this->wrapper_x, $this->wrapper_y, $this->wrapper_x, $this->wrapper_y);
+            imagecopyresized($canvas, $thumb, ($this->wrapper_x+($this->margin*3)), $this->margin, 0, 0, $this->wrapper_x, $this->wrapper_y, $this->wrapper_x, $this->wrapper_y);
             imagedestroy($thumb);
             imagejpeg($canvas, $destiny);
             return $destiny;
