@@ -35,6 +35,38 @@ class PreviewPrint
         }
     }
 
+    /**
+     * @param $filename1
+     * @param $filename2
+     * @param $dir_out
+     * @param string $name
+     * @param string $type
+     * @param string $format
+     * @return array|null|string
+     */
+    static function previewDual( $filename1, $filename2,$dir_out,$name ='salida', $type = 'inner', $format = '4x6')
+    {
+        $obj = new self($type, $format);
+        return $obj->optimizeTwo( $filename1, $filename2,$dir_out,$name);
+    }
+
+    /**
+     * @param $filename
+     * @param $dir_out
+     * @param string $name
+     * @param string $type
+     * @param string $format
+     * @return array|null|string
+     */
+    static function preview( $filename,$dir_out,$name ='salida', $type = 'inner', $format = '4x6')
+    {
+        $obj = new self($type, $format);
+        return $obj->optimize( $filename,$dir_out,$name);
+    }
+
+    /**
+     * @return resource
+     */
     private function createCanvas(){
         $thumb = imagecreatetruecolor($this->size_x, $this->size_y);
         $fondo = imagecolorallocate($thumb, 0, 0, 255);
@@ -68,7 +100,7 @@ class PreviewPrint
         return $thumb;
     }
 
-    public function calcularResizeRatio($ancho, $alto, $max_x, $max_y, $inner = true)
+    private function calcularResizeRatio($ancho, $alto, $max_x, $max_y, $inner = true)
     {
         $ratioy = $alto / $ancho;
         $ratiox = $ancho / $alto;
@@ -139,15 +171,12 @@ class PreviewPrint
     }
 
     /**
-     * @param $destiny
      * @param $filename
+     * @param $destiny
      * @return null|string
      */
-    public function previewOne($destiny, $filename)
+    private function sinlge( $filename,$destiny)
     {
-        if($this->wrapper_x == 0){
-            $this->calculateWrappers();
-        }
         $resource = $this->getResource($filename);
         if (is_resource($resource)) {
             $canvas = $this->createCanvas();
@@ -161,17 +190,13 @@ class PreviewPrint
     }
 
     /**
-     * @param $destiny
      * @param $filename
      * @param $filename2
+     * @param $destiny
      * @return null|string
      */
-    public function previewMergeTwo($destiny, $filename, $filename2)
+    private function dual( $filename, $filename2,$destiny)
     {
-        if($this->wrapper_x == 0){
-            $this->calculateWrappers(true);
-        }
-        print_r([$this->size_x,$this->size_y,$this->wrapper_x,$this->wrapper_y]);
         $resource1 = $this->getResource($filename);
         $resource2 = $this->getResource($filename2);
         if (is_resource($resource1) && is_resource($resource2)) {
@@ -188,30 +213,82 @@ class PreviewPrint
     }
 
     /**
-     * @param $destiny
-     * @param $filename
-     * @param $filename2
-     * @param string $type
-     * @param string $format
-     * @return null|string
+     * @param $filenames
+     * @param $path_out
+     * @param string $name
+     * @return array|null|string
      */
-    static function optimizeTwo($destiny, $filename, $filename2, $type = 'inner', $format = '4x6')
-    {
-        $obj = new self($type, $format);
-        return $obj->previewMergeTwo($destiny, $filename, $filename2);
+    public function optimize($filenames,$path_out,$name='salida'){
+        $this->calculateWrappers();
+        if(is_array($filenames)) {
+            $back = [];
+            $i=0;
+            foreach ($filenames as $filename):
+                $i++;
+                $back[] = $this->sinlge($filename ,$path_out.DIRECTORY_SEPARATOR.$name.'_'.$i.'.jpg');
+            endforeach;
+        }else{
+            $back = $this->sinlge($filenames,$path_out.DIRECTORY_SEPARATOR.$name.'.jpg');
+        }
+        return $back;
     }
 
     /**
-     * @param $destiny
-     * @param $filename
-     * @param string $type
-     * @param string $format
-     * @return null|string
+     * @param $filenames1
+     * @param $filenames2
+     * @param $path_out
+     * @param string $name
+     * @return array|null|string
      */
-    static function optimizeOne($destiny, $filename, $type = 'inner', $format = '4x6')
-    {
-        $obj = new self($type, $format);
-        return $obj->previewOne($destiny, $filename);
+    public function optimizeTwo($filenames1,$filenames2,$path_out,$name='salida'){
+        $this->calculateWrappers(true);
+        $arrays = false;
+        $back = null;
+        if(is_string($filenames1) && is_string($filenames2)){
+            $back = $this->dual($filenames1,$filenames2,$path_out.DIRECTORY_SEPARATOR.$name.'.jpg');
+        }elseif(is_array($filenames1) && is_array($filenames2)){
+            $arrays = true;
+            if(count($filenames1) == count($filenames2)){
+            }elseif(count($filenames1) > count($filenames2)) {
+                $fixed = [];
+                foreach ($filenames1 as $cont=>$filename){
+                    $fixed[$cont] = isset($filenames2[$cont])?$filenames2[$cont]:$filename;
+                }
+                $filenames2 = $fixed;
+            }else{
+                $fixed = [];
+                foreach ($filenames2 as $cont=>$filename){
+                    $fixed[] = isset($filenames1[$cont])?$filenames1[$cont]:$filename;
+                }
+                $filenames1 = $fixed;
+            }
+        }elseif(is_array($filenames1) || is_array($filenames2)){
+            $fixed =[];
+            $arrays = true;
+            if(is_array($filenames1)){
+                foreach ($filenames1 as $cont=>$filename){
+                    $fixed[$cont] = $filenames2;
+                }
+                $filenames2 = $fixed;
+            }else{
+                foreach ($filenames2 as $cont=>$filename){
+                    $fixed[$cont] = $filenames1;
+                }
+                $filenames1 = $fixed;
+            }
+
+        }
+        if($arrays){
+            $back = [];
+            $i = 0;
+            foreach ($filenames1 as $cont=>$filename1){
+                $i++;
+                $back[] = $this->dual($filename1, $filenames2[$cont],$path_out.DIRECTORY_SEPARATOR.$name.'_'.$i.'.jpg');
+            }
+        }
+        return $back;
     }
+
+
 
 }
