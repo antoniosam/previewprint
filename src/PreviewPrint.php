@@ -223,6 +223,8 @@ class PreviewPrint
             $canvas = $this->createCanvas();
             $thumb = $this->createThumb($resource1);
             imagecopyresized($canvas, $thumb, $this->margin, $this->margin, 0, 0, $this->wrapper_x, $this->wrapper_y, $this->wrapper_x, $this->wrapper_y);
+            $negro = imagecolorallocate($thumb, 0, 0, 0);
+            imagefilledrectangle($canvas, ($this->wrapper_x+($this->margin*2)), 0, ($this->wrapper_x+($this->margin*2)), $this->size_y, $negro);
             $thumb = $this->createThumb($resource2);
             imagecopyresized($canvas, $thumb, ($this->wrapper_x+($this->margin*3)), $this->margin, 0, 0, $this->wrapper_x, $this->wrapper_y, $this->wrapper_x, $this->wrapper_y);
             imagedestroy($thumb);
